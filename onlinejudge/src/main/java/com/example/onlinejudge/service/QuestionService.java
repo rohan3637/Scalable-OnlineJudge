@@ -19,5 +19,4 @@ public interface QuestionService {
 
     public void deleteQuestion(String questionId, String userId);
 
-    public PagedDiscussionResponse getDiscussions(String questionId, String searchQuery, Integer pageNo, Integer pageSize);
 }

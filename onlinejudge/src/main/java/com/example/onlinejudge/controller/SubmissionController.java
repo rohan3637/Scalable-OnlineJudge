@@ -1,9 +1,6 @@
 package com.example.onlinejudge.controller;
 
-import com.example.onlinejudge.dto.SubmissionDto;
-import com.example.onlinejudge.dto.SubmissionRequestDto;
-import com.example.onlinejudge.dto.SubmissionResultDto;
-import com.example.onlinejudge.dto.TestResultDto;
+import com.example.onlinejudge.dto.*;
 import com.example.onlinejudge.service.SubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -43,5 +40,19 @@ public class SubmissionController {
     public ResponseEntity<SubmissionDto> getSubmission(@RequestParam String submissionId) {
         SubmissionDto submissionDto = submissionService.getSubmissionDetail(submissionId);
         return ResponseEntity.ok(submissionDto);
+    }
+
+    @GetMapping("/get_submissions")
+    public ResponseEntity<PagedSubmissionResponse> getDiscussions(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String questionId,
+            @RequestParam(required = false) List<String> languages,
+            @RequestParam(defaultValue = "1", required = false) Integer pageNo,
+            @RequestParam(defaultValue = "10", required = false) Integer pageSize,
+            @RequestParam(required = false) String status
+    ) {
+        PagedSubmissionResponse pagedSubmissionResponse = submissionService.getSubmissionsByFilter(userId,
+                questionId, status, languages, pageNo, pageSize);
+        return ResponseEntity.ok(pagedSubmissionResponse);
     }
 }

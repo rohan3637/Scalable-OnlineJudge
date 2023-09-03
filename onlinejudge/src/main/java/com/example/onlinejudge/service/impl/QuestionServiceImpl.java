@@ -76,12 +76,12 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public PagedQuestionResponse getAllQuestionsByFilters(String userId, List<String> topics, List<String> difficulties,
-                                                          String searchQuery, Integer pageNo, Integer pageSize) {
-        List<Question> questionList = questionCustomRepository.getQuestionByFilters(topics, difficulties, searchQuery, pageNo, pageSize);
+                    String searchQuery, Integer pageNo, Integer pageSize) {
+        List<Question> questionList = questionCustomRepository.getQuestionByFilters(userId, topics, difficulties, searchQuery, pageNo, pageSize);
         List<QuestionResponseDto> questionDtos = questionList.parallelStream()
                 .map(question -> modelMapper.map(question, QuestionResponseDto.class))
                 .toList();
-        Integer count = questionCustomRepository.getCountByFilters(topics, difficulties, searchQuery);
+        Integer count = questionCustomRepository.getCountByFilters(userId, topics, difficulties, searchQuery);
         PageInfo pageInfo = new PageInfo(pageNo, pageSize, count);
         return new PagedQuestionResponse(pageInfo, questionDtos);
     }
@@ -148,21 +148,6 @@ public class QuestionServiceImpl implements QuestionService {
         }
         deleteTopicMappingsForQuestion(questionId);
         questionRepository.delete(question);
-    }
-
-    @Override
-    public PagedDiscussionResponse getDiscussions(String questionId, String searchQuery, Integer pageNo, Integer pageSize) {
-        Optional<Question> questionOptional = questionRepository.findById(questionId);
-        if(questionOptional.isEmpty()) {
-            throw new ResourceNotFoundException("Question", "id", questionId);
-        }
-        List<Discussion> discussions = discussionCustomRepository.getDiscussionBySearch(questionId, searchQuery, pageNo, pageSize);
-        Integer totalCount = discussionCustomRepository.getDiscussionCount(questionId, searchQuery);
-        List<DiscussionDto> discussionDtos = discussions.parallelStream()
-                .map(discussion -> modelMapper.map(discussion, DiscussionDto.class))
-                .toList();
-        PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
-        return new PagedDiscussionResponse(pageInfo, discussionDtos);
     }
 
     private void deleteTopicMappingsForQuestion(String questionId) {

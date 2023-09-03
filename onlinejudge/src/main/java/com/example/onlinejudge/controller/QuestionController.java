@@ -43,7 +43,7 @@ public class QuestionController {
 
     @GetMapping("/get_questions")
     public ResponseEntity<PagedQuestionResponse> getAllQuestions(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
             @RequestParam(required = false) List<String> topics,
             @RequestParam(required = false) List<String> difficulties,
             @RequestParam(defaultValue = "1", required = false) Integer pageNo,
@@ -61,15 +61,4 @@ public class QuestionController {
         return new ResponseEntity<>(questionDto, HttpStatus.OK);
     }
 
-    @GetMapping("/get_discussions")
-    public ResponseEntity<PagedDiscussionResponse> getDiscussions(
-            @RequestParam String questionId,
-            @RequestParam(defaultValue = "1", required = false) Integer pageNo,
-            @RequestParam(defaultValue = "10", required = false) Integer pageSize,
-            @RequestParam(required = false) String searchQuery
-    ) {
-        PagedDiscussionResponse pagedDiscussionResponse = questionService.getDiscussions(
-                questionId,searchQuery, pageNo, pageSize);
-        return ResponseEntity.ok(pagedDiscussionResponse);
-    }
 }

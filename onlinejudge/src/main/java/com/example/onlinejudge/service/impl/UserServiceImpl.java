@@ -1,24 +1,21 @@
 package com.example.onlinejudge.service.impl;
 
-import com.example.onlinejudge.dto.CreateUserDto;
-import com.example.onlinejudge.dto.ProfileDto;
-import com.example.onlinejudge.dto.UserResponseDto;
+import com.example.onlinejudge.dto.*;
 import com.example.onlinejudge.exception.BadRequestException;
 import com.example.onlinejudge.exception.ResourceNotFoundException;
 import com.example.onlinejudge.models.*;
 import com.example.onlinejudge.repository.UserRepository;
 import com.example.onlinejudge.service.UserService;
 import jakarta.transaction.Transactional;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.util.*;
 
 @Service
 @Transactional
@@ -69,5 +66,39 @@ public class UserServiceImpl implements UserService {
         Integer totalPoints = easySolved * 10 + mediumSolved * 20 + hardSolved * 30;
         return new ProfileDto(userId, userOptional.get().getName(), userOptional.get().getEmail(),
                 correctSubmission, easySolved, mediumSolved, hardSolved, accuracy, totalPoints);
+    }
+
+    @Override
+    public UserResponseDto updateUserDetails(String userId, CreateUserDto createUserDto) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if(userOptional.isEmpty()) {
+            log.error("User not found with this id !!");
+            throw new ResourceNotFoundException("User", "id", userId);
+        }
+        User user = userOptional.get();
+        user.setName(createUserDto.getName());
+        user.setEmail(createUserDto.getEmail());
+        user.setPassword(createUserDto.getPassword());
+        User savedUser = userRepository.save(user);
+        return modelMapper.map(savedUser, UserResponseDto.class);
+    }
+
+    @Override
+    public PagedLeaderboardDto getLeaderboard(Integer pageNo, Integer pageSize) {
+        Integer offset = (pageNo - 1) * pageSize;
+        List<Object[]> objects = userRepository.findUsersWithScores(pageSize, offset);
+        List<UserResponseDto> userResponseDtos = new ArrayList<>();
+        objects.forEach(object -> {
+            UserResponseDto userResponseDto = new UserResponseDto();
+            userResponseDto.setUserId((String) object[0]);
+            userResponseDto.setName((String) object[1]);
+            userResponseDto.setEmail((String) object[2]);
+            BigDecimal score = (BigDecimal) object[3]; // Cast to BigDecimal
+            userResponseDto.setScore(score.intValue()); // Convert to Integer
+            userResponseDtos.add(userResponseDto);
+        });
+        Integer totalCount = userRepository.countUsersWithScores();
+        PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
+        return new PagedLeaderboardDto(pageInfo, userResponseDtos);
     }
 }

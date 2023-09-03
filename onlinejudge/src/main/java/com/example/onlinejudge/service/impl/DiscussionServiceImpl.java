@@ -1,11 +1,12 @@
 package com.example.onlinejudge.service.impl;
 
-import com.example.onlinejudge.dto.DiscussionDto;
+import com.example.onlinejudge.dto.*;
 import com.example.onlinejudge.exception.BadRequestException;
 import com.example.onlinejudge.exception.ResourceNotFoundException;
 import com.example.onlinejudge.models.Discussion;
 import com.example.onlinejudge.models.Question;
 import com.example.onlinejudge.models.User;
+import com.example.onlinejudge.repository.DiscussionCustomRepository;
 import com.example.onlinejudge.repository.DiscussionRepository;
 import com.example.onlinejudge.repository.QuestionRepository;
 import com.example.onlinejudge.repository.UserRepository;
@@ -16,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -34,6 +37,9 @@ public class DiscussionServiceImpl implements DiscussionService {
     @Autowired
     private QuestionRepository questionRepository;
 
+    @Autowired
+    private DiscussionCustomRepository discussionCustomRepository;
+
     @Override
     public DiscussionDto createDiscussion(String userId, String questionId, DiscussionDto discussionDto) {
         Optional<User> userOptional = userRepository.findById(userId);
@@ -49,7 +55,9 @@ public class DiscussionServiceImpl implements DiscussionService {
         discussion.setUser(userOptional.get());
         discussion.setTimeStamp(LocalDateTime.now());
         Discussion savedDiscussion = discussionRepository.save(discussion);
-        return modelMapper.map(savedDiscussion, DiscussionDto.class);
+        DiscussionDto savedDiscussionDto = modelMapper.map(savedDiscussion, DiscussionDto.class);
+        savedDiscussionDto.setUserResponseDto(modelMapper.map(savedDiscussion.getUser(), UserResponseDto.class));
+        return savedDiscussionDto;
     }
 
     @Override
@@ -58,7 +66,10 @@ public class DiscussionServiceImpl implements DiscussionService {
         if(discussionOptional.isEmpty()) {
             throw new ResourceNotFoundException("Discusion", "id", discussionId);
         }
-        return modelMapper.map(discussionOptional.get(), DiscussionDto.class);
+        DiscussionDto discussionDto = modelMapper.map(discussionOptional.get(), DiscussionDto.class);
+        discussionDto.setUserResponseDto(modelMapper.map(discussionOptional.get().getUser(), UserResponseDto.class));
+        discussionDto.setQuestionResponseDto(modelMapper.map(discussionOptional.get().getQuestion(), QuestionResponseDto.class));
+        return discussionDto;
     }
 
     @Override
@@ -79,7 +90,10 @@ public class DiscussionServiceImpl implements DiscussionService {
         discussion.setComment(discussionDto.getComment());
         discussion.setTimeStamp(LocalDateTime.now());
         Discussion updatedDiscussion = discussionRepository.save(discussion);
-        return modelMapper.map(updatedDiscussion, DiscussionDto.class);
+        DiscussionDto updatedDiscussionDto = modelMapper.map(updatedDiscussion, DiscussionDto.class);
+        updatedDiscussionDto.setUserResponseDto(modelMapper.map(updatedDiscussion.getUser(), UserResponseDto.class));
+        updatedDiscussionDto.setQuestionResponseDto(modelMapper.map(updatedDiscussion.getQuestion(), QuestionResponseDto.class));
+        return updatedDiscussionDto;
     }
 
     @Override
@@ -96,5 +110,21 @@ public class DiscussionServiceImpl implements DiscussionService {
             throw new BadRequestException("Only owner can delete their comment !!");
         }
         discussionRepository.delete(discussionOptional.get());
+    }
+
+    @Override
+    public PagedDiscussionResponse getDiscussions(String userId, String questionId, String searchQuery, Integer pageNo, Integer pageSize) {
+        List<Discussion> discussions = discussionCustomRepository.getDiscussionBySearch(
+                userId, questionId, searchQuery, pageNo, pageSize);
+        Integer totalCount = discussionCustomRepository.getDiscussionCount(userId, questionId, searchQuery);
+        List<DiscussionDto> discussionDtos = new ArrayList<>();
+        discussions.forEach(discussion -> {
+            DiscussionDto discussionDto = modelMapper.map(discussion, DiscussionDto.class);
+            if(questionId == null) discussionDto.setQuestionResponseDto(modelMapper.map(discussion.getQuestion(), QuestionResponseDto.class));
+            if(userId == null) discussionDto.setUserResponseDto(modelMapper.map(discussion.getUser(), UserResponseDto.class));
+            discussionDtos.add(discussionDto);
+        });
+        PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
+        return new PagedDiscussionResponse(pageInfo, discussionDtos);
     }
 }

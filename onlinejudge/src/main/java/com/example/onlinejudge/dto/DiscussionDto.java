@@ -13,6 +13,7 @@ public class DiscussionDto {
 
     private String id;
     private UserResponseDto userResponseDto;
+    private QuestionResponseDto questionResponseDto;
     private String title;
     private String comment;
     private LocalDateTime timeStamp;

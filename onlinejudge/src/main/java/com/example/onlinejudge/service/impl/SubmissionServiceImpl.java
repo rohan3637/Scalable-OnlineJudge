@@ -4,6 +4,7 @@ import com.example.onlinejudge.dto.*;
 import com.example.onlinejudge.exception.ResourceNotFoundException;
 import com.example.onlinejudge.models.*;
 import com.example.onlinejudge.repository.QuestionRepository;
+import com.example.onlinejudge.repository.SubmissionCustomRepository;
 import com.example.onlinejudge.repository.SubmissionRepository;
 import com.example.onlinejudge.repository.UserRepository;
 import com.example.onlinejudge.service.SubmissionService;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +33,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private SubmissionCustomRepository submissionCustomRepository;
 
     @Autowired
     private SubmissionRepository submissionRepository;
@@ -98,5 +103,22 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setQuestionDto(questionDto);
         submissionDto.setUserResponseDto(userResponseDto);
         return submissionDto;
+    }
+
+    @Override
+    public PagedSubmissionResponse getSubmissionsByFilter(String userId, String questionId, String status,
+                     List<String> languages, Integer pageNo, Integer pageSize) {
+        List<Submission> submissions = submissionCustomRepository.getSubmissionByFilter(
+                userId, questionId, status, languages, pageNo, pageSize);
+        Integer totalCount = submissionCustomRepository.getSubmissionCount(userId, questionId, status, languages);
+        List<SubmissionDto> submissionDtos = new ArrayList<>();
+        submissions.forEach(submission -> {
+            SubmissionDto submissionDto = modelMapper.map(submission, SubmissionDto.class);
+            if(questionId == null) submissionDto.setQuestionDto(modelMapper.map(submission.getQuestion(), QuestionResponseDto.class));
+            if(userId == null) submissionDto.setUserResponseDto(modelMapper.map(submission.getUser(), UserResponseDto.class));
+            submissionDtos.add(submissionDto);
+        });
+        PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
+        return new PagedSubmissionResponse(pageInfo, submissionDtos);
     }
 }

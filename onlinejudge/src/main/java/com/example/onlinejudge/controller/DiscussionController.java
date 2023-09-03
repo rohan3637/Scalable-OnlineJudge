@@ -2,6 +2,7 @@ package com.example.onlinejudge.controller;
 
 import com.example.onlinejudge.dto.ApiResponse;
 import com.example.onlinejudge.dto.DiscussionDto;
+import com.example.onlinejudge.dto.PagedDiscussionResponse;
 import com.example.onlinejudge.service.DiscussionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,5 +47,18 @@ public class DiscussionController {
         discussionService.deleteDiscussion(userId, discussionId);
         ApiResponse apiResponse = new ApiResponse("Discussion deleted successfully !!", true);
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/get_discussions")
+    public ResponseEntity<PagedDiscussionResponse> getDiscussions(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String questionId,
+            @RequestParam(defaultValue = "1", required = false) Integer pageNo,
+            @RequestParam(defaultValue = "10", required = false) Integer pageSize,
+            @RequestParam(required = false) String searchQuery
+    ) {
+        PagedDiscussionResponse pagedDiscussionResponse = discussionService.getDiscussions(userId,
+                questionId, searchQuery, pageNo, pageSize);
+        return ResponseEntity.ok(pagedDiscussionResponse);
     }
 }
