@@ -19,7 +19,7 @@ public class DiscussionCustomRepository {
     @Autowired
     private EntityManager entityManager;
 
-    public List<Discussion> getDiscussionBySearch(String questionId, String searchQuery, Pageable pageable) {
+    public List<Discussion> getDiscussionBySearch(String questionId, String searchQuery, Integer pageNo, Integer pageSize) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Discussion> criteriaQuery = criteriaBuilder.createQuery(Discussion.class);
         Root<Discussion> root = criteriaQuery.from(Discussion.class);
@@ -28,8 +28,8 @@ public class DiscussionCustomRepository {
                 .where(getPredicates(root, criteriaBuilder, questionId, searchQuery));
 
         final TypedQuery<Discussion> typedQuery = entityManager.createQuery(criteriaQuery);
-        typedQuery.setFirstResult((int) pageable.getOffset());
-        typedQuery.setMaxResults(pageable.getPageSize());
+        typedQuery.setFirstResult((pageNo - 1) * pageSize);
+        typedQuery.setMaxResults(pageSize);
         return typedQuery.getResultList();
     }
 
@@ -46,7 +46,7 @@ public class DiscussionCustomRepository {
 
     private Predicate[] getPredicates(Root<Discussion> root, CriteriaBuilder criteriaBuilder, String questionId, String searchQuery) {
         List<Predicate> predicates = new ArrayList<>();
-        Predicate defaultPredicate = criteriaBuilder.equal(root.get("questionId"), questionId);
+        Predicate defaultPredicate = criteriaBuilder.equal(root.get("question"), questionId);
         predicates.add(defaultPredicate);
         if (searchQuery != null) {
             Predicate titleSearchPredicate = criteriaBuilder.like(root.get("title"), "%" + searchQuery + "%");

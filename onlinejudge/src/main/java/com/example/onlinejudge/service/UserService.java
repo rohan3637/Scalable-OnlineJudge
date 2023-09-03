@@ -1,10 +1,11 @@
 package com.example.onlinejudge.service;
 
 import com.example.onlinejudge.dto.CreateUserDto;
-import com.example.onlinejudge.dto.UserDto;
+import com.example.onlinejudge.dto.ProfileDto;
+import com.example.onlinejudge.dto.UserResponseDto;
 
 public interface UserService {
 
     public void registerUser(CreateUserDto userDto);
-    public UserDto getUserDetails(String userId);
+    public ProfileDto getUserDetails(String userId);
 }

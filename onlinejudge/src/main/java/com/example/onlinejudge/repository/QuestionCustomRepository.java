@@ -18,7 +18,7 @@ public class QuestionCustomRepository {
     @Autowired
     private EntityManager entityManager;
 
-    public List<Question> getQuestionByFilters(List<String> topics, List<String> difficulties, String searchQuery, Pageable pageable) {
+    public List<Question> getQuestionByFilters(List<String> topics, List<String> difficulties, String searchQuery, Integer pageNo, Integer pageSize) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Question> criteriaQuery = criteriaBuilder.createQuery(Question.class);
         Root<Question> root = criteriaQuery.from(Question.class);
@@ -27,8 +27,8 @@ public class QuestionCustomRepository {
                 .where(getPredicates(root, criteriaBuilder, topics, difficulties, searchQuery));
 
         final TypedQuery<Question> typedQuery = entityManager.createQuery(criteriaQuery);
-        typedQuery.setFirstResult((int) pageable.getOffset());
-        typedQuery.setMaxResults(pageable.getPageSize());
+        typedQuery.setFirstResult((pageNo - 1) * pageSize);
+        typedQuery.setMaxResults(pageSize);
         return typedQuery.getResultList();
     }
 

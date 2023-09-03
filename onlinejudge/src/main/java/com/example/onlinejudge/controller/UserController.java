@@ -2,8 +2,8 @@ package com.example.onlinejudge.controller;
 
 import com.example.onlinejudge.dto.ApiResponse;
 import com.example.onlinejudge.dto.CreateUserDto;
-import com.example.onlinejudge.dto.UserDto;
-import com.example.onlinejudge.models.User;
+import com.example.onlinejudge.dto.ProfileDto;
+import com.example.onlinejudge.dto.UserResponseDto;
 import com.example.onlinejudge.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,8 +25,8 @@ public class UserController {
     }
 
     @GetMapping("/get_user_details")
-    public ResponseEntity<UserDto> getUserDetails(@RequestParam String userId) {
-        UserDto user = userService.getUserDetails(userId);
+    public ResponseEntity<ProfileDto> getUserDetails(@RequestParam String userId) {
+        ProfileDto user = userService.getUserDetails(userId);
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 }

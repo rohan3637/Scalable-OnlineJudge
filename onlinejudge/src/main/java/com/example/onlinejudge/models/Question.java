@@ -12,8 +12,8 @@ import java.util.List;
 public class Question {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long questionId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String questionId;
 
     @Column(name = "title", nullable = false)
     private String title;
@@ -49,7 +49,7 @@ public class Question {
     @JsonIgnore
     private List<Submission> submissions;
 
-    @OneToMany(targetEntity = TestCase.class, cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "question", orphanRemoval = true)
+    @OneToMany(targetEntity = TestCase.class, cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "question")
     @JsonIgnore
     private List<TestCase> testCases;
 

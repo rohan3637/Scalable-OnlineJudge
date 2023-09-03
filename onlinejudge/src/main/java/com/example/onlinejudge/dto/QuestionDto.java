@@ -17,10 +17,10 @@ public class QuestionDto {
     private String title;
     private List<Topic> topics;
     private String description;
-    private UserDto author;
     private Difficulty difficulty;
     private Integer totalSubmission;
     private Integer correctSubmission;
+    private List<TestCaseDto> testCaseDtos;
     private String authorSolution;
     private String hints;
 }

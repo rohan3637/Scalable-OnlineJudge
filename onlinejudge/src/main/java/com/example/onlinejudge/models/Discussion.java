@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @AllArgsConstructor
@@ -27,6 +29,9 @@ public class Discussion {
     @Column(name = "title")
     private String title;
 
-    @Column(name = "comment")
+    @Column(name = "comment", columnDefinition = "TEXT", length = 40000)
     private String comment;
+
+    @Column(name = "time_stamp")
+    private LocalDateTime timeStamp;
 }

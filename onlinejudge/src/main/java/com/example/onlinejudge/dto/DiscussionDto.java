@@ -1,9 +1,10 @@
 package com.example.onlinejudge.dto;
 
-import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -11,7 +12,8 @@ import lombok.NoArgsConstructor;
 public class DiscussionDto {
 
     private String id;
-    private UserDto userDto;
+    private UserResponseDto userResponseDto;
     private String title;
     private String comment;
+    private LocalDateTime timeStamp;
 }

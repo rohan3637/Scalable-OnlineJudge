@@ -1,23 +1,16 @@
 package com.example.onlinejudge.service.impl;
 
-import com.example.onlinejudge.dto.DiscussionDto;
-import com.example.onlinejudge.dto.QuestionDto;
-import com.example.onlinejudge.dto.QuestionResponseDto;
+import com.example.onlinejudge.dto.*;
 import com.example.onlinejudge.exception.BadRequestException;
 import com.example.onlinejudge.exception.ResourceNotFoundException;
-import com.example.onlinejudge.models.Discussion;
-import com.example.onlinejudge.models.Question;
-import com.example.onlinejudge.models.User;
+import com.example.onlinejudge.models.*;
 import com.example.onlinejudge.repository.*;
 import com.example.onlinejudge.service.QuestionService;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -36,7 +29,16 @@ public class QuestionServiceImpl implements QuestionService {
     private QuestionRepository questionRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private TestCaseRepository testCaseRepository;
+
+    @Autowired
     private QuestionCustomRepository questionCustomRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private DiscussionCustomRepository discussionCustomRepository;
@@ -45,8 +47,23 @@ public class QuestionServiceImpl implements QuestionService {
     private UserRepository userRepository;
 
     @Override
-    public void createQuestion(String userId, QuestionDto questionDto) {
-        Question question = modelMapper.map(questionDto, Question.class);
+    public void createQuestion(String userId, CreateQuestionDto createQuestionDto) {
+        Question question = modelMapper.map(createQuestionDto, Question.class);
+        List<TestCase> testCases = new ArrayList<>();
+        createQuestionDto.getTestCaseDtos().forEach(testCaseDto -> {
+            TestCase testCase = new TestCase();
+            testCase.setInput(testCaseDto.getInput());
+            testCase.setExpectedOutput(testCaseDto.getExpectedOutput());
+            testCase.setQuestion(question);
+            testCases.add(testCase);
+        });
+        question.setTestCases(testCases);
+        List<Topic> topics = new ArrayList<>();
+        createQuestionDto.getTopics().forEach(topicId -> {
+            Topic topic = topicRepository.findById(topicId).get();
+            topics.add(topic);
+        });
+        question.setTopics(topics);
         Optional<User> userOptional = userRepository.findById(userId);
         if(userOptional.isEmpty()) {
             throw new ResourceNotFoundException("User", "id", userId);
@@ -58,15 +75,15 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public Page<QuestionResponseDto> getAllQuestionsByFilters(String userId, List<String> topics, List<String> difficulties,
-                        String searchQuery, Integer pageNo, Integer pageSize) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        List<Question> questionList = questionCustomRepository.getQuestionByFilters(topics, difficulties, searchQuery, pageable);
+    public PagedQuestionResponse getAllQuestionsByFilters(String userId, List<String> topics, List<String> difficulties,
+                                                          String searchQuery, Integer pageNo, Integer pageSize) {
+        List<Question> questionList = questionCustomRepository.getQuestionByFilters(topics, difficulties, searchQuery, pageNo, pageSize);
         List<QuestionResponseDto> questionDtos = questionList.parallelStream()
                 .map(question -> modelMapper.map(question, QuestionResponseDto.class))
                 .toList();
         Integer count = questionCustomRepository.getCountByFilters(topics, difficulties, searchQuery);
-        return new PageImpl<>(questionDtos, pageable, count);
+        PageInfo pageInfo = new PageInfo(pageNo, pageSize, count);
+        return new PagedQuestionResponse(pageInfo, questionDtos);
     }
 
     @Override
@@ -75,25 +92,52 @@ public class QuestionServiceImpl implements QuestionService {
         if(questionOptional.isEmpty()) {
             throw new ResourceNotFoundException("Question", "id", questionId);
         }
-        return modelMapper.map(questionOptional.get(), QuestionDto.class);
+        List<TestCaseDto> testCaseDtos = questionOptional.get().getTestCases().stream()
+                .map(testCase -> modelMapper.map(testCase, TestCaseDto.class))
+                .toList();
+        QuestionDto questionDto = modelMapper.map(questionOptional.get(), QuestionDto.class);
+        questionDto.setTestCaseDtos(testCaseDtos);
+        return questionDto;
     }
 
     @Override
-    public QuestionDto updateQuestion(String userId, QuestionDto questionDto) {
-        Optional<Question> questionOptional = questionRepository.findById(questionDto.getQuestionId());
+    public QuestionDto updateQuestion(String userId, String questionId, CreateQuestionDto createQuestionDto) {
+        Optional<Question> questionOptional = questionRepository.findById(questionId);
         if(questionOptional.isEmpty()) {
-            throw new ResourceNotFoundException("Question", "id", questionDto.getQuestionId());
+            throw new ResourceNotFoundException("Question", "id", questionId);
         }
         Question question = questionOptional.get();
         if(!question.getAuthor().getUserId().equals(userId)) {
             throw new BadRequestException("Only author can edit their question !!");
         }
-        questionRepository.save(modelMapper.map(questionDto, Question.class));
-        return questionDto;
+        List<TestCase> testCases = new ArrayList<>();
+        createQuestionDto.getTestCaseDtos().forEach(testCaseDto -> {
+            if(testCaseDto.getId() != null) {
+                testCaseRepository.deleteById(testCaseDto.getId());
+            }
+            TestCase testCase = new TestCase();
+            testCase.setInput(testCaseDto.getInput());
+            testCase.setExpectedOutput(testCaseDto.getExpectedOutput());
+            testCase.setQuestion(question);
+            testCases.add(testCase);
+        });
+        question.setTestCases(testCases);
+        question.setTitle(createQuestionDto.getTitle());
+        question.setDescription(createQuestionDto.getDescription());
+        question.setHints(createQuestionDto.getHints());
+        question.setDifficulty(createQuestionDto.getDifficulty());
+        List<Topic> topics = new ArrayList<>();
+        createQuestionDto.getTopics().forEach(topicId -> {
+            Topic topic = topicRepository.findById(topicId).get();
+            topics.add(topic);
+        });
+        question.setTopics(topics);
+        Question savedQuestion = questionRepository.save(question);
+        return modelMapper.map(savedQuestion, QuestionDto.class);
     }
 
     @Override
-    public void deleteQuestion(String questionId, String userId) {
+    public void deleteQuestion(String userId, String questionId) {
         Optional<Question> questionOptional = questionRepository.findById(questionId);
         if(questionOptional.isEmpty()) {
             throw new ResourceNotFoundException("Question", "id", questionId);
@@ -102,21 +146,30 @@ public class QuestionServiceImpl implements QuestionService {
         if(!question.getAuthor().getUserId().equals(userId)) {
             throw new BadRequestException("Only author can delete their question !!");
         }
+        deleteTopicMappingsForQuestion(questionId);
         questionRepository.delete(question);
     }
 
     @Override
-    public Page<DiscussionDto> getDiscussions(String questionId, String searchQuery, Integer pageNo, Integer pageSize) {
+    public PagedDiscussionResponse getDiscussions(String questionId, String searchQuery, Integer pageNo, Integer pageSize) {
         Optional<Question> questionOptional = questionRepository.findById(questionId);
         if(questionOptional.isEmpty()) {
             throw new ResourceNotFoundException("Question", "id", questionId);
         }
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        List<Discussion> discussions = discussionCustomRepository.getDiscussionBySearch(questionId, searchQuery, pageable);
+        List<Discussion> discussions = discussionCustomRepository.getDiscussionBySearch(questionId, searchQuery, pageNo, pageSize);
         Integer totalCount = discussionCustomRepository.getDiscussionCount(questionId, searchQuery);
         List<DiscussionDto> discussionDtos = discussions.parallelStream()
                 .map(discussion -> modelMapper.map(discussion, DiscussionDto.class))
                 .toList();
-        return new PageImpl<>(discussionDtos, pageable, totalCount);
+        PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
+        return new PagedDiscussionResponse(pageInfo, discussionDtos);
+    }
+
+    private void deleteTopicMappingsForQuestion(String questionId) {
+        // Perform a native SQL delete query to remove topic_mapping records for the given questionId
+        String sql = "DELETE FROM onlinejudge.topic_mapping WHERE question = :questionId";
+        entityManager.createNativeQuery(sql)
+                .setParameter("questionId", questionId)
+                .executeUpdate();
     }
 }

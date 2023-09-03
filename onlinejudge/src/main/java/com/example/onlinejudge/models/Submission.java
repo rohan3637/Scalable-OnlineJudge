@@ -31,7 +31,7 @@ public class Submission {
     @Column(name = "language")
     private Langauge langauge;
 
-    @Column(name = "code_content")
+    @Column(name = "code_content", columnDefinition = "TEXT", length = 10000)
     private String codeContent;
 
     @Enumerated(EnumType.STRING)
