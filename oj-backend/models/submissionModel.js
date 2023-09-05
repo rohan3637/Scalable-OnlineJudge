@@ -29,9 +29,6 @@ const submissionSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    testCasesOutput: [{
-        type: String
-    }],
     testCasesPassed: {
         type: Number
     }

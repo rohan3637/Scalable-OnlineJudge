@@ -8,8 +8,7 @@ const discussionSchema = new mongoose.Schema({
     },
     questionId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Question",
-        required: true
+        ref: "Question"
     },
     title: {
         type: String,
@@ -19,7 +18,7 @@ const discussionSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    commentTime: {
+    timeStamp: {
         type: Date,
         default: Date.now
     }

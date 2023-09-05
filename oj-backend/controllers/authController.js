@@ -15,8 +15,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
         username, email, password
     });
     const responseUser = {
-        id: newUser._id,
-        username: newUser.username,
+        userId: newUser._id,
+        name: newUser.username,
         email: newUser.email,
         role: newUser.role
     };

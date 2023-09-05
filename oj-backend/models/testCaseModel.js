@@ -4,7 +4,6 @@ const testCaseSchema = new mongoose.Schema({
     questionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Question",
-        required: true
     },
     input: {
         type: String,

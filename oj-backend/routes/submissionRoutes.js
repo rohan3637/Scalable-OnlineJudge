@@ -2,9 +2,11 @@ const express = require("express");
 const router = express.Router();
 
 const {
-    getSubmissionDetails
+    getSubmissionDetails,
+    getSubmissionsByFilter
 } = require("../controllers/submissionController");
   
-router.get("/get_details", getSubmissionDetails);
+router.get("/get_submission", getSubmissionDetails);
+router.get("/get_submissions", getSubmissionsByFilter);
 
 module.exports = router;
