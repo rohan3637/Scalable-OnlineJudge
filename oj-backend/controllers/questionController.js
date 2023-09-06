@@ -11,14 +11,14 @@ const addQuestion = asyncHandler(async (req, res, next) => {
     const userId = req.query.userId;
     const { title, description, difficulty, hints, topics, testCaseDtos} = req.body;
     if (!title || !description || !difficulty || !testCaseDtos || !userId) {
-        return next(new ErrorResponse("Missing required fields !!", 404));
+        return next(new ErrorResponse("Missing required fields !!", 400));
     }
     if (!mongoose.isValidObjectId(userId)) {
         return next(new ErrorResponse(`Invalid user ID: ${userId}`, 400));
     }
     const user = await User.findById(userId);
     if (!user) {
-        return next(new ErrorResponse(`User not found with id: ${userId}`, 400));
+        return next(new ErrorResponse(`User not found with id: ${userId}`, 404));
     }
     const newQuestion = await Question.create({
         title,
@@ -57,7 +57,7 @@ const getQuestionDetails = asyncHandler(async (req, res, next) => {
     }
     const question = await Question.findById(questionId);
     if (!question) {
-        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 400));
+        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 404));
     }
     const testCases = await TestCase.find({ questionId });
     const topicDtos = await Promise.all(question?.topicIds?.map(async (topicId) => {
@@ -76,14 +76,14 @@ const updateQuestion = asyncHandler(async (req, res, next) => {
     const questionId = req.query.questionId;
     const { title, description, difficulty, hints, topics, testCaseDtos} = req.body;
     if (!title || !description || !difficulty || !testCaseDtos || !userId) {
-        return next(new ErrorResponse("Missing required fields !!", 404));
+        return next(new ErrorResponse("Missing required fields !!", 400));
     }
     if (!mongoose.isValidObjectId(questionId)) {
         return next(new ErrorResponse(`Invalid question ID: ${questionId}`, 400));
     }
     const question = await Question.findById(questionId);
     if (!question) {
-        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 400));
+        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 404));
     }
     if(question.authorId !== userId) {
         return next(new ErrorResponse("Only author can edit their question !!", 400));
@@ -123,7 +123,7 @@ const deleteQuestion = asyncHandler(async (req, res, next) => {
     }
     const question = await Question.findById(questionId);
     if (!question) {
-        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 400));
+        return next(new ErrorResponse(`Question not found with id: ${questionId}`, 404));
     }
     if(question.authorId != userId) {
         return next(new ErrorResponse("Only author can delete their question !!", 400));
@@ -164,10 +164,11 @@ const getAllQuestions = asyncHandler(async (req, res, next) => {
 
     let questionIdsWithStatus = [];
     if (statuses) {
-        const userSubmissionsWithStatus = await Submission.find({
-            userId: userId,
-            status: { $in: statuses }
-        });
+        const q = {
+            status : { $in : statuses }
+        }
+        if(userId) q['userId'] = userId;
+        const userSubmissionsWithStatus = await Submission.find(q);
         questionIdsWithStatus = userSubmissionsWithStatus.map(submission => submission.questionId);
         query['_id'] = { $in: questionIdsWithStatus };
     }
