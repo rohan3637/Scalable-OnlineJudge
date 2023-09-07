@@ -1,18 +1,21 @@
 package com.example.onlinejudge.service.impl;
 
 import com.example.onlinejudge.dto.*;
+import com.example.onlinejudge.exception.BadRequestException;
 import com.example.onlinejudge.exception.ResourceNotFoundException;
 import com.example.onlinejudge.models.*;
 import com.example.onlinejudge.repository.QuestionRepository;
 import com.example.onlinejudge.repository.SubmissionCustomRepository;
 import com.example.onlinejudge.repository.SubmissionRepository;
 import com.example.onlinejudge.repository.UserRepository;
+import com.example.onlinejudge.service.runner.*;
 import com.example.onlinejudge.service.SubmissionService;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +50,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new ResourceNotFoundException("Question", "id", questionId);
         }
         List<TestCase> testCases = questionOptional.get().getTestCases().subList(0, 2);
-        return javaCompilationService.runCodeOnTestCases(submissionRequestDto.getCodeContent(), testCases);
+        return runCodeOnTestCases(submissionRequestDto.getLanguage().name(), submissionRequestDto.getCodeContent(), testCases);
     }
 
     @Override
@@ -121,4 +124,47 @@ public class SubmissionServiceImpl implements SubmissionService {
         PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
         return new PagedSubmissionResponse(pageInfo, submissionDtos);
     }
+
+    private List<TestResultDto> runCodeOnTestCases(String language, String code, List<TestCase> testCases) throws Exception {
+        File tempDir = new File("temp");
+        tempDir.mkdirs();
+        File codeFile = new File(tempDir, "submission." + getExtensionForLanguage(language));
+        // Write code to the generated file
+        try (FileWriter fileWriter = new FileWriter(codeFile)) {
+            fileWriter.write(code);
+        }
+        String filePath = codeFile.getAbsolutePath();
+
+        ExecutionService executionService = null;
+        if (language == Langauge.JAVA.name()) executionService = new JavaExecutionService();
+        else if (language == Langauge.JAVASCRIPT.name()) executionService = new JSExecutionService();
+        else if (language == Langauge.CPP.name()) executionService = new CPPExecutionService();
+        else if (language == Langauge.PYTHON.name()) executionService = new PythonExecutionService();
+        else throw new BadRequestException("Unsupported language !!");
+
+        executionService.compile(code, filePath);
+        List<TestResultDto> results = new ArrayList<>();
+        for (TestCase testCase : testCases) {
+            String expectedOutput = testCase.getExpectedOutput();
+            String standardOutput = executionService.execute(code, testCase.getInput(), filePath);
+            boolean isTestCasePassed = standardOutput.trim().equals(expectedOutput.trim());
+            results.add(new TestResultDto(testCase.getInput(), standardOutput.trim(), expectedOutput.trim(), isTestCasePassed));
+        }
+        //.delete();
+        return results;
+    }
+
+    private String getExtensionForLanguage(String language) {
+        language = language.toLowerCase();
+        switch (language) {
+            case "java": return "java";
+            case "cpp": return "cpp";
+            case "javascript": return "js";
+            case "python": return "py";
+            case "c": return "c";
+            default:
+                throw new BadRequestException("Unsupported language " + language);
+        }
+    }
+
 }
