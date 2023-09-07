@@ -38,8 +38,7 @@ const addQuestion = asyncHandler(async (req, res, next) => {
             });
         })
     ); 
-    (topics === null) ? [] : topics;
-    const topicDtos = await Promise.all(topics?.map(async (topicId) => {
+    const topicDtos = await Promise.all(topics && topics?.map(async (topicId) => {
         return await Topic.findById(topicId);
     }));
     const response = {

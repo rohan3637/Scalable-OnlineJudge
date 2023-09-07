@@ -1,9 +1,12 @@
 const { exec } = require('child_process');
+const asyncHandler = require("express-async-handler");
 
-const executePy = async (pythonFilePath, input) => {
+const PYTHON_PATH = process.env.PYTHON_PATH
+
+const executePy = asyncHandler(async (pythonFilePath, input) => {
   return new Promise((resolve, reject) => {
     // Run the Python script
-    const runCommand = `python3 ${pythonFilePath}`;
+    const runCommand = `${PYTHON_PATH} ${pythonFilePath}`;
     const runProcess = exec(runCommand, (runError, runStdout, runStderr) => {
       if (runError || runStderr) {
         console.error(`Execution error: ${runError || runStderr}`);
@@ -16,17 +19,7 @@ const executePy = async (pythonFilePath, input) => {
 
     runProcess.stdin.write(input);
     runProcess.stdin.end();
-
-    runProcess.on('error', (error) => {
-      reject(`Execution process error: ${error}`);
-    });
-
-    runProcess.on('exit', (code) => {
-      if (code !== 0) {
-        reject(`Execution process exited with code ${code}`);
-      }
-    });
   });
-};
+});
 
 module.exports = executePy;

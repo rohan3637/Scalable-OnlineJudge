@@ -36,7 +36,8 @@ const compileAndRun = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Question not found", 404));
     }
     const testcases = await TestCase.find({questionId}).limit(2);
-    const response = await compileAndRunCodeOnTestCases(language, codeContent, testcases); 
+    const response = await compileAndRunCodeOnTestCases(language, codeContent, testcases);
+    if (response instanceof ErrorResponse) return next(response);
     res.status(200).json(response);
 }) 
 
@@ -58,6 +59,7 @@ const submitCode = asyncHandler(async (req, res, next) => {
     }
     const testCases = await TestCase.find({questionId});
     const testResultDtos = await compileAndRunCodeOnTestCases(language, codeContent, testCases); 
+    if (testResultDtos instanceof ErrorResponse) return next(testResultDtos);
 
     let testCasesPassed = 0;
     let failedTestCase = null;
@@ -65,7 +67,7 @@ const submitCode = asyncHandler(async (req, res, next) => {
         if (testResultDto.passed) testCasesPassed++;
         else if (!failedTestCase) failedTestCase = testResultDto;
     }
-    const status = testCasesPassed === testCases.length ? 'ACCEPTED' : 'REJECTED';
+    const status = testCasesPassed === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
 
     // Create a submission record
     const submission = await Submission.create({
