@@ -17,52 +17,6 @@ import java.util.stream.Collectors;
 @Service
 public class JavaCompilationService {
 
-    /*public String compileAndRunCode(String code) {
-        // Create a temporary directory to store the Java source file
-        File tempDir = new File("temp");
-        tempDir.mkdirs();
-
-        // Write the user-submitted code to a temporary .java file
-        File javaFile = new File(tempDir, "UserSubmission");
-        try (FileWriter fileWriter = new FileWriter(javaFile)) {
-            fileWriter.write(code);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "Compilation and execution failed. Error writing code.";
-        }
-
-        // Create a Java Compiler
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
-            return "Compilation and execution failed. Java Compiler not found.";
-        }
-
-        // Compile the Java source file
-        int compilationResult = compiler.run(null, null, null, javaFile.getPath());
-
-        if (compilationResult == 0) {
-            // Compilation succeeded, now run the compiled class
-            try {
-                Process process = Runtime.getRuntime().exec("java -classpath " + tempDir.getPath() + " UserSubmission");
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                StringBuilder output = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-                reader.close();
-                process.waitFor();
-                return "Compilation and execution successful.\nOutput:\n" + output.toString();
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
-                return "Compilation succeeded, but execution failed.";
-            }
-        } else {
-            // Compilation failed
-            return "Compilation failed.";
-        }
-    }*/
-
     public List<TestResultDto> runCodeOnTestCases(String code, List<TestCase> testCases) throws Exception {
         List<TestResultDto> results = new ArrayList<>();
         File tempDir = new File("temp");

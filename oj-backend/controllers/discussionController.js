@@ -104,7 +104,7 @@ const getDiscussionsByFilter = asyncHandler(async (req, res, next) => {
     const query = {};
     if (userId) query['userId'] = userId;
     if (questionId) query['questionId'] = questionId;
-    if(searchQuery) {
+    if (searchQuery) {
         query.$or = [
             { title: { $regex: searchQuery, $options: 'i' } },
             { comment: { $regex: searchQuery, $options: 'i' } },
