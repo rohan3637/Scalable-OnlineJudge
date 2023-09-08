@@ -24,21 +24,29 @@ const compileAndRunCodeOnTestCases = asyncHandler(async (language, codeContent, 
     else if (language === 'CPP') executeFunction = executeCPP;
     else if (language === 'PYTHON') executeFunction = executePy;
 
+    if (executeFunction.compile) {
+      try {
+          await executeFunction.compile(codeFilePath);
+      } catch (compileError) {
+          return new ErrorResponse(compileError, 400);
+      }
+    }
+
     try {
       const results = await Promise.all(testcases.map(async (testCase) => {
           const { input, expectedOutput } = testCase;
-          const result = await executeFunction(codeFilePath, input);
+          const result = await executeFunction.execute(codeFilePath, input);
 
           // Check if the output matches the expected output
           const isTestCasePassed = result.trim() === expectedOutput.trim();
           return { input, actualOutput: result, expectedOutput, passed: isTestCasePassed };
       }));
       return results;
-  } catch (error) {
-      return new ErrorResponse(error, 500);
-  } finally {
-      fs.rmdirSync(tempDir, { recursive: true });
-  }
+    } catch (error) {
+        return new ErrorResponse(error, 400);
+    } finally {
+        fs.rmdirSync(tempDir, { recursive: true });
+    }
 });
 
 const getExtensionForLanguage = (language) => {
@@ -54,6 +62,6 @@ const getExtensionForLanguage = (language) => {
       default:
         throw new ErrorResponse(`Unsupported language: ${language}`, 400);
     }
-  }
+}
 
 module.exports = compileAndRunCodeOnTestCases;
