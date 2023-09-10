@@ -8,9 +8,9 @@ const executeJAVA = {
       const compileCommand = `javac ${javaFilePath}`;
       exec(compileCommand, (compileError, compileStdout, compileStderr) => {
         if (compileError || compileStderr) {
-            reject(`Compilation failed: ${compileError || compileStderr}`);
+          reject(`Compilation failed: ${compileError || compileStderr}`);
         } else {
-            resolve();
+          resolve();
         }
       });
     });

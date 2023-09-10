@@ -7,7 +7,7 @@ const executePy = {
   async execute(pythonFilePath, input) {
     return new Promise((resolve, reject) => {
       // Run the Python script
-      const runCommand = `${PYTHON_PATH} ${pythonFilePath}`;
+      const runCommand = `python3 ${pythonFilePath}`;
       const runProcess = exec(runCommand, (runError, runStdout, runStderr) => {
         if (runError || runStderr) {
           reject(`Execution failed: ${runError || runStderr}`);

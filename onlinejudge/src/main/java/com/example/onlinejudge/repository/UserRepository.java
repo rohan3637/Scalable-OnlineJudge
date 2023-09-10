@@ -35,4 +35,6 @@ public interface UserRepository extends JpaRepository<User, String> {
             "WHERE sub.status = 'ACCEPTED' ", nativeQuery = true)
     Integer countUsersWithScores();
 
+    List<User> findAllOrderByScoreDesc(Pageable pageable);
+
 }

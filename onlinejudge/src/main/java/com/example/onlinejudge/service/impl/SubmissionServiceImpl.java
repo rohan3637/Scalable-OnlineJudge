@@ -64,7 +64,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new ResourceNotFoundException("User", "id", userId);
         }
         List<TestCase> testCases = questionOptional.get().getTestCases();
-        List<TestResultDto> testResultDtos = javaCompilationService.runCodeOnTestCases(submissionRequestDto.getCodeContent(), testCases);
+        List<TestResultDto> testResultDtos = runCodeOnTestCases(submissionRequestDto.getLanguage().name(), submissionRequestDto.getCodeContent(), testCases);
         Integer testCasesPassed = 0;
         TestResultDto failedTestCase = null;
         for(TestResultDto testResultDto : testResultDtos) {
@@ -79,13 +79,31 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setSubmissionTime(LocalDateTime.now());
         submission.setTestCasePassed(testCasesPassed);
         submission.setStatus(status);
-        submissionRepository.save(submission);
 
         Question question = questionOptional.get();
         question.setTotalSubmission(question.getTotalSubmission() + 1);
-        if(status == Status.ACCEPTED) question.setCorrectSubmission(question.getCorrectSubmission() + 1);
+        if(status == Status.ACCEPTED) {
+            question.setCorrectSubmission(question.getCorrectSubmission() + 1);
+            updateUserScore(userOptional.get(), question);
+        }
         questionRepository.save(question);
+        submissionRepository.save(submission);
+
         return new SubmissionResultDto(status, testCasesPassed, testCases.size(), failedTestCase);
+    }
+
+    private void updateUserScore(User user, Question question) {
+        List<Submission> submissions = submissionRepository.findByUserAndQuestion(user, question);
+        for(Submission submission : submissions) {
+            if (submission.getStatus() == Status.ACCEPTED) {
+                Integer score = 0;
+                if (question.getDifficulty() == Difficulty.EASY) score = 10;
+                else if (question.getDifficulty() == Difficulty.MEDIUM) score = 20;
+                else score = 20;
+                user.setScore(user.getScore() + score);
+                break;
+            }
+        }
     }
 
     @Override

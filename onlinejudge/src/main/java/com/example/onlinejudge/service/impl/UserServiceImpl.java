@@ -85,19 +85,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PagedLeaderboardDto getLeaderboard(Integer pageNo, Integer pageSize) {
-        Integer offset = (pageNo - 1) * pageSize;
-        List<Object[]> objects = userRepository.findUsersWithScores(pageSize, offset);
-        List<UserResponseDto> userResponseDtos = new ArrayList<>();
-        objects.forEach(object -> {
-            UserResponseDto userResponseDto = new UserResponseDto();
-            userResponseDto.setUserId((String) object[0]);
-            userResponseDto.setName((String) object[1]);
-            userResponseDto.setEmail((String) object[2]);
-            BigDecimal score = (BigDecimal) object[3]; // Cast to BigDecimal
-            userResponseDto.setScore(score.intValue()); // Convert to Integer
-            userResponseDtos.add(userResponseDto);
-        });
-        Integer totalCount = userRepository.countUsersWithScores();
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        List<User> users = userRepository.findAllOrderByScoreDesc(pageable);
+        List<UserResponseDto> userResponseDtos = users.parallelStream()
+                .map(user -> modelMapper.map(user, UserResponseDto.class))
+                .toList();
+        Integer totalCount = Math.toIntExact(userRepository.count());
         PageInfo pageInfo = new PageInfo(pageNo, pageSize, totalCount);
         return new PagedLeaderboardDto(pageInfo, userResponseDtos);
     }
