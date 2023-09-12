@@ -23,7 +23,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: [userRoles.ROLE_ADMIN, userRoles.ROLE_USER],
         default: userRoles.ROLE_USER 
-    }
+    },
+    score: {
+        type: Number,
+        default: 0
+    } 
 });
 
 const User = mongoose.model("User", userSchema);

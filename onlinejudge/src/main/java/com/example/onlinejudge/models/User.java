@@ -37,4 +37,7 @@ public class User {
 
     @OneToMany(targetEntity = Discussion.class, cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "user")
     private List<Discussion> discussions;
+
+    @Column(name = "score")
+    private Integer score;
 }

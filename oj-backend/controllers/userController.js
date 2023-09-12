@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Submission = require("..//models/submissionModel");
 const mongoose = require('mongoose');
-const ErrorResponse = require('../utils/ErrorResponse');
+const ErrorResponse = require('../utils/errorResponse');
 const Discussion = require("../models/discussionModel");
 
 const getUserDetails = asyncHandler(async (req, res, next) => {
@@ -80,4 +80,22 @@ const updateUserDetails = asyncHandler(async (req, res, next) => {
     res.status(200).json(userResponseDto);
 });
 
-module.exports = { getUserDetails, updateUserDetails };  
+const getLeaderboard = asyncHandler(async (req, res, next) => {
+    const pageNo = parseInt(req.query.pageNo) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const users = await User.find()
+      .sort({ score: -1 })
+      .skip((pageNo - 1) * pageSize)
+      .limit(pageSize)
+      .select("id username score");
+
+    const totalCount = await User.countDocuments();
+    return res.status(200).json({
+        pageNo,
+        pageSize,
+        totalCount,
+        users
+    })
+})
+
+module.exports = { getUserDetails, updateUserDetails, getLeaderboard };  

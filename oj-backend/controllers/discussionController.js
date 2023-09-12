@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const mongoose = require('mongoose');
-const ErrorResponse = require('../utils/ErrorResponse');
+const ErrorResponse = require('../utils/errorResponse');
 const Discussion = require("../models/discussionModel");
 const Question = require("../models/questionModel");
 

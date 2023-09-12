@@ -5,7 +5,7 @@ const executeCPP = require('./executeCPP');
 const executeJAVA = require('./executeJAVA');
 const executePy = require('./executePy');
 const executeJS = require('./executeJS');
-const ErrorResponse = require('../utils/ErrorResponse');
+const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require("express-async-handler");
 
 const compileAndRunCodeOnTestCases = asyncHandler(async (language, codeContent, testcases) => {
@@ -39,7 +39,7 @@ const compileAndRunCodeOnTestCases = asyncHandler(async (language, codeContent, 
 
           // Check if the output matches the expected output
           const isTestCasePassed = result.trim() === expectedOutput.trim();
-          return { input, actualOutput: result, expectedOutput, passed: isTestCasePassed };
+          return { input, actualOutput: result.trim(), expectedOutput, passed: isTestCasePassed };
       }));
       return results;
     } catch (error) {

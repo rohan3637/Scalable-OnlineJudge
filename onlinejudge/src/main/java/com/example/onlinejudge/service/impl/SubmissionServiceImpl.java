@@ -25,8 +25,6 @@ import java.util.Optional;
 @Transactional
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Autowired
-    private JavaCompilationService javaCompilationService;
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -42,6 +40,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     private SubmissionRepository submissionRepository;
+
+    @Autowired
+    private CPPExecutionService cppExecutionService;
 
     @Override
     public List<TestResultDto> compileAndRun(String userId, String questionId, SubmissionRequestDto submissionRequestDto) throws Exception {
@@ -64,7 +65,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new ResourceNotFoundException("User", "id", userId);
         }
         List<TestCase> testCases = questionOptional.get().getTestCases();
-        List<TestResultDto> testResultDtos = javaCompilationService.runCodeOnTestCases(submissionRequestDto.getCodeContent(), testCases);
+        List<TestResultDto> testResultDtos = runCodeOnTestCases(submissionRequestDto.getLanguage().name(), submissionRequestDto.getCodeContent(), testCases);
         Integer testCasesPassed = 0;
         TestResultDto failedTestCase = null;
         for(TestResultDto testResultDto : testResultDtos) {
@@ -79,13 +80,31 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setSubmissionTime(LocalDateTime.now());
         submission.setTestCasePassed(testCasesPassed);
         submission.setStatus(status);
-        submissionRepository.save(submission);
 
         Question question = questionOptional.get();
         question.setTotalSubmission(question.getTotalSubmission() + 1);
-        if(status == Status.ACCEPTED) question.setCorrectSubmission(question.getCorrectSubmission() + 1);
+        if(status == Status.ACCEPTED) {
+            question.setCorrectSubmission(question.getCorrectSubmission() + 1);
+            updateUserScore(userOptional.get(), question);
+        }
         questionRepository.save(question);
+        submissionRepository.save(submission);
+
         return new SubmissionResultDto(status, testCasesPassed, testCases.size(), failedTestCase);
+    }
+
+    private void updateUserScore(User user, Question question) {
+        List<Submission> submissions = submissionRepository.findByUserAndQuestion(user, question);
+        for(Submission submission : submissions) {
+            if (submission.getStatus() == Status.ACCEPTED) {
+                Integer score = 0;
+                if (question.getDifficulty() == Difficulty.EASY) score = 10;
+                else if (question.getDifficulty() == Difficulty.MEDIUM) score = 20;
+                else score = 20;
+                user.setScore(user.getScore() + score);
+                break;
+            }
+        }
     }
 
     @Override
@@ -126,32 +145,36 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     private List<TestResultDto> runCodeOnTestCases(String language, String code, List<TestCase> testCases) throws Exception {
-        File tempDir = new File("temp");
-        tempDir.mkdirs();
-        File codeFile = new File(tempDir, "submission." + getExtensionForLanguage(language));
-        // Write code to the generated file
-        try (FileWriter fileWriter = new FileWriter(codeFile)) {
-            fileWriter.write(code);
-        }
-        String filePath = codeFile.getAbsolutePath();
+        try {
+            File tempDir = new File("temp");
+            tempDir.mkdirs();
+            File codeFile = new File(tempDir, "submission." + getExtensionForLanguage(language));
+            // Write code to the generated file
+            try (FileWriter fileWriter = new FileWriter(codeFile)) {
+                fileWriter.write(code);
+            }
+            String filePath = codeFile.getAbsolutePath();
 
-        ExecutionService executionService = null;
-        if (language == Langauge.JAVA.name()) executionService = new JavaExecutionService();
-        else if (language == Langauge.JAVASCRIPT.name()) executionService = new JSExecutionService();
-        else if (language == Langauge.CPP.name()) executionService = new CPPExecutionService();
-        else if (language == Langauge.PYTHON.name()) executionService = new PythonExecutionService();
-        else throw new BadRequestException("Unsupported language !!");
+            ExecutionService executionService = null;
+            if (language == Langauge.JAVA.name()) executionService = new JavaExecutionService();
+            else if (language == Langauge.JAVASCRIPT.name()) executionService = new JSExecutionService();
+            else if (language == Langauge.CPP.name()) executionService = cppExecutionService;
+            else if (language == Langauge.PYTHON.name()) executionService = new PythonExecutionService();
+            else throw new BadRequestException("Unsupported language !!");
 
-        executionService.compile(code, filePath);
-        List<TestResultDto> results = new ArrayList<>();
-        for (TestCase testCase : testCases) {
-            String expectedOutput = testCase.getExpectedOutput();
-            String standardOutput = executionService.execute(code, testCase.getInput(), filePath);
-            boolean isTestCasePassed = standardOutput.trim().equals(expectedOutput.trim());
-            results.add(new TestResultDto(testCase.getInput(), standardOutput.trim(), expectedOutput.trim(), isTestCasePassed));
+            executionService.compile(code, filePath);
+            List<TestResultDto> results = new ArrayList<>();
+            for (TestCase testCase : testCases) {
+                String expectedOutput = testCase.getExpectedOutput();
+                String standardOutput = executionService.execute(code, testCase.getInput(), filePath);
+                boolean isTestCasePassed = standardOutput.trim().equals(expectedOutput.trim());
+                results.add(new TestResultDto(testCase.getInput(), standardOutput.trim(), expectedOutput.trim(), isTestCasePassed));
+            }
+            //.delete();
+            return results;
+        } catch (Exception ex) {
+            throw new RuntimeException("Something went wrong: " + ex.getMessage());
         }
-        //.delete();
-        return results;
     }
 
     private String getExtensionForLanguage(String language) {

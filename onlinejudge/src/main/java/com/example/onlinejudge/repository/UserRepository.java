@@ -35,4 +35,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             "WHERE sub.status = 'ACCEPTED' ", nativeQuery = true)
     Integer countUsersWithScores();
 
+    @Query(value = "SELECT * from user ORDER BY score desc LIMIT :pageSize OFFSET :offset ", nativeQuery = true)
+    List<User> findAllOrderByScoreDesc(@Param("pageSize") Integer pageSize, @Param("offset") Integer offset);
+
 }
