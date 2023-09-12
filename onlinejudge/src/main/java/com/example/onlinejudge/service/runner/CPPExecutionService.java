@@ -1,19 +1,23 @@
 package com.example.onlinejudge.service.runner;
 
 import com.example.onlinejudge.exception.CompilationException;
+import com.example.onlinejudge.utils.OJConstants;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 @Service
 public class CPPExecutionService implements ExecutionService {
-    public void compile (String code, String fileName) throws Exception {
+    @Override
+    public void compile(String codeContent, String fileName) throws Exception {
         try {
-            String compileCommand = "g++ -o " + fileName.replace(".cpp", "") + " " + fileName;
-            Process compileProcess = Runtime.getRuntime().exec(compileCommand);
+            String compileOutputPath = fileName.replace("cpp", "exe");
+            ProcessBuilder processBuilder = new ProcessBuilder("g++", fileName, "-o", compileOutputPath);
+            Process compileProcess = processBuilder.start();
             int compilationResult = compileProcess.waitFor();
-            // Capture error stream
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()));
             StringBuilder errorMessage = new StringBuilder();
             String line;
@@ -25,19 +29,19 @@ public class CPPExecutionService implements ExecutionService {
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            throw new Exception("Something went wrong !!");
+            throw new RuntimeException("Something went wrong: " + e.getMessage(), e);
         }
     }
 
     @Override
     public String execute(String codeContent, String input, String fileName) throws Exception {
         try {
-            fileName = fileName.replace(".cpp", "");
-            ProcessBuilder processBuilder = new ProcessBuilder("./" + fileName);
+            String executionPath = fileName.replace("cpp", "exe");
+            ProcessBuilder processBuilder = new ProcessBuilder(executionPath);
             Process executionProcess = processBuilder.start();
 
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(executionProcess.getOutputStream()))) {
-                writer.write(input);
+                writer.write(input.trim());
             }
             // Capture the standard output and standard error of the program
             String standardOutput;

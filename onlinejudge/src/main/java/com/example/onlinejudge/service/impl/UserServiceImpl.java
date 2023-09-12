@@ -85,8 +85,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PagedLeaderboardDto getLeaderboard(Integer pageNo, Integer pageSize) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        List<User> users = userRepository.findAllOrderByScoreDesc(pageable);
+        Integer offset = (pageNo - 1) * pageSize;
+        List<User> users = userRepository.findAllOrderByScoreDesc(pageSize, offset);
         List<UserResponseDto> userResponseDtos = users.parallelStream()
                 .map(user -> modelMapper.map(user, UserResponseDto.class))
                 .toList();

@@ -25,8 +25,6 @@ import java.util.Optional;
 @Transactional
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Autowired
-    private JavaCompilationService javaCompilationService;
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -42,6 +40,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     private SubmissionRepository submissionRepository;
+
+    @Autowired
+    private CPPExecutionService cppExecutionService;
 
     @Override
     public List<TestResultDto> compileAndRun(String userId, String questionId, SubmissionRequestDto submissionRequestDto) throws Exception {
@@ -144,32 +145,36 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     private List<TestResultDto> runCodeOnTestCases(String language, String code, List<TestCase> testCases) throws Exception {
-        File tempDir = new File("temp");
-        tempDir.mkdirs();
-        File codeFile = new File(tempDir, "submission." + getExtensionForLanguage(language));
-        // Write code to the generated file
-        try (FileWriter fileWriter = new FileWriter(codeFile)) {
-            fileWriter.write(code);
-        }
-        String filePath = codeFile.getAbsolutePath();
+        try {
+            File tempDir = new File("temp");
+            tempDir.mkdirs();
+            File codeFile = new File(tempDir, "submission." + getExtensionForLanguage(language));
+            // Write code to the generated file
+            try (FileWriter fileWriter = new FileWriter(codeFile)) {
+                fileWriter.write(code);
+            }
+            String filePath = codeFile.getAbsolutePath();
 
-        ExecutionService executionService = null;
-        if (language == Langauge.JAVA.name()) executionService = new JavaExecutionService();
-        else if (language == Langauge.JAVASCRIPT.name()) executionService = new JSExecutionService();
-        else if (language == Langauge.CPP.name()) executionService = new CPPExecutionService();
-        else if (language == Langauge.PYTHON.name()) executionService = new PythonExecutionService();
-        else throw new BadRequestException("Unsupported language !!");
+            ExecutionService executionService = null;
+            if (language == Langauge.JAVA.name()) executionService = new JavaExecutionService();
+            else if (language == Langauge.JAVASCRIPT.name()) executionService = new JSExecutionService();
+            else if (language == Langauge.CPP.name()) executionService = cppExecutionService;
+            else if (language == Langauge.PYTHON.name()) executionService = new PythonExecutionService();
+            else throw new BadRequestException("Unsupported language !!");
 
-        executionService.compile(code, filePath);
-        List<TestResultDto> results = new ArrayList<>();
-        for (TestCase testCase : testCases) {
-            String expectedOutput = testCase.getExpectedOutput();
-            String standardOutput = executionService.execute(code, testCase.getInput(), filePath);
-            boolean isTestCasePassed = standardOutput.trim().equals(expectedOutput.trim());
-            results.add(new TestResultDto(testCase.getInput(), standardOutput.trim(), expectedOutput.trim(), isTestCasePassed));
+            executionService.compile(code, filePath);
+            List<TestResultDto> results = new ArrayList<>();
+            for (TestCase testCase : testCases) {
+                String expectedOutput = testCase.getExpectedOutput();
+                String standardOutput = executionService.execute(code, testCase.getInput(), filePath);
+                boolean isTestCasePassed = standardOutput.trim().equals(expectedOutput.trim());
+                results.add(new TestResultDto(testCase.getInput(), standardOutput.trim(), expectedOutput.trim(), isTestCasePassed));
+            }
+            //.delete();
+            return results;
+        } catch (Exception ex) {
+            throw new RuntimeException("Something went wrong: " + ex.getMessage());
         }
-        //.delete();
-        return results;
     }
 
     private String getExtensionForLanguage(String language) {
