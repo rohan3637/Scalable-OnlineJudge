@@ -43,9 +43,9 @@ const compileAndRunCodeOnTestCases = asyncHandler(async (language, codeContent, 
       }));
       return results;
     } catch (error) {
-        return new ErrorResponse(error, 400);
+      return new ErrorResponse(error, 400);
     } finally {
-        fs.rmdirSync(tempDir, { recursive: true });
+      fs.rmdirSync(tempDir, { recursive: true });
     }
 });
 
