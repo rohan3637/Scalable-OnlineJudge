@@ -38,9 +38,12 @@ const addQuestion = asyncHandler(async (req, res, next) => {
             });
         })
     ); 
-    const topicDtos = await Promise.all(topics && topics?.map(async (topicId) => {
-        return await Topic.findById(topicId);
-    }));
+    let topicDtos = null;
+    if (topics != null) {
+        topicDtos = await Promise.all(topics && topics?.map(async (topicId) => {
+            return await Topic.findById(topicId);
+        }));
+    }    
     const response = {
         ...newQuestion.toObject(),
         topics: topicDtos,
@@ -100,10 +103,12 @@ const updateQuestion = asyncHandler(async (req, res, next) => {
         expectedOutput: testCaseDto.expectedOutput
     }));
     await TestCase.insertMany(newTestCases);  
-    (topics === null) ? [] : topics;
-    const topicDtos = await Promise.all(question?.topicIds?.map(async (topicId) => {
-        return await Topic.findById(topicId);
-    })); 
+    let topicDtos = null;
+    if (topics != null) {
+        topicDtos = await Promise.all(topics && topics?.map(async (topicId) => {
+            return await Topic.findById(topicId);
+        }));
+    } 
     await TestCase.insertMany(newTestCases); 
     const updatedQuestion = await question.save();
     const response = {

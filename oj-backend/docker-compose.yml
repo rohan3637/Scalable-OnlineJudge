@@ -1,13 +1,17 @@
 version: '3'
 services:
   node-app:
-    image: my-node-img
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    #image: my-node-img
     ports:
       - "5000:5000"
-    depends_on:
-      - mongodb
+    container_name: node-app-container  
+    #depends_on:
+    #  - mongodb
 
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
+  #mongodb:
+  #  image: mongo:latest
+  #  ports:
+  #    - "27017:27017"

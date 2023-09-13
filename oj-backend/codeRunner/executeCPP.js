@@ -25,11 +25,11 @@ const executeCPP = {
       // If compilation is successful, run the C++ program
       const runCommand = path.join(path.dirname(cppFilePath), 'submission.exe');
       const runProcess = exec(runCommand, (runError, runStdout, runStderr) => {
-          if (runError || runStderr) {
-            reject(`Execution failed: ${runError || runStderr}`);
-          } else {
-            resolve(runStdout);
-          }
+        if (runError || runStderr) {
+          reject(`Execution failed: ${runError || runStderr}`);
+        } else {
+          resolve(runStdout);
+        }
       });
 
       runProcess.stdin.on('error', (err) => {

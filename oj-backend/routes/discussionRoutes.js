@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const validateToken = require('../middleware/validateTokenHandler');
 
 const {
     addDiscussion,
@@ -8,6 +9,9 @@ const {
     deleteDiscussion,
     getDiscussionsByFilter
 } = require("../controllers/discussionController");
+
+// Apply the validateToken middleware to protect these routes
+router.use(validateToken);
   
 router.post("/add_discussion", addDiscussion);
 router.get("/get_discussion", getDiscussion);
