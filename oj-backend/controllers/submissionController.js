@@ -6,6 +6,7 @@ const ErrorResponse = require('../utils/errorResponse');
 const Question = require("../models/questionModel");
 const TestCase = require("../models/testCaseModel");
 const compileAndRunCodeOnTestCases = require("../codeRunner/compileAndRunCodeOnTestCases");
+const compileAndRunCodeOnUserInput = require("../codeRunner/compileAndRunCodeOnUserInput");
 
 const getSubmissionDetails = asyncHandler(async (req, res, next) => {
     const submissionId = req.query.submissionId;
@@ -24,6 +25,7 @@ const compileAndRun = asyncHandler(async (req, res, next) => {
     const questionId = req.query.questionId;
     const language = req.body.language || null;
     const codeContent = req.body.codeContent || null;
+    const userInput = req.body.userInput || null;
 
     if(!language || !codeContent) {
         return next(new ErrorResponse("Missing language or codeContent", 404));
@@ -35,8 +37,14 @@ const compileAndRun = asyncHandler(async (req, res, next) => {
     if (!question) {
         return next(new ErrorResponse("Question not found", 404));
     }
-    const testcases = await TestCase.find({questionId}).limit(2);
-    const response = await compileAndRunCodeOnTestCases(language, codeContent, testcases);
+    let response = null;
+    if (userInput != null) {
+        response = await compileAndRunCodeOnUserInput(language, codeContent, userInput, questionId);
+    }
+    else {
+        const testcases = await TestCase.find({questionId}).limit(2);
+        response = await compileAndRunCodeOnTestCases(language, codeContent, testcases);
+    }    
     if (response instanceof ErrorResponse) return next(response);
     res.status(200).json(response);
 }) 

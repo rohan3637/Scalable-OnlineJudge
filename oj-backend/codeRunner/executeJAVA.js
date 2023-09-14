@@ -19,7 +19,9 @@ const executeJAVA = {
   async execute(javaFilePath, input) {
     return new Promise((resolve, reject) => {
       // If compilation is successful, run the JAVA program
-      const runCommand = `java -classpath ${javaFilePath.replace('submission.java', '')} submission`;
+      const pathSegments = javaFilePath.split('/');
+      const className = pathSegments[pathSegments.length - 1].replace('.java', '');
+      const runCommand = `java -classpath ${javaFilePath.replace(`${className}.java`, '')} ${className}`;
       const runProcess = exec(runCommand, (runError, runStdout, runStderr) => {
         if (runError || runStderr) {
           reject(`Execution failed: ${runError || runStderr}`);

@@ -6,11 +6,12 @@ const ErrorResponse = require('../utils/errorResponse');
 const Question = require("../models/questionModel");
 const TestCase = require("../models/testCaseModel");
 const Topic = require("../models/topicModel");
+const Solution = require("../models/solutionModel");
 
 const addQuestion = asyncHandler(async (req, res, next) => {
     const userId = req.query.userId;
-    const { title, description, difficulty, hints, topics, testCaseDtos} = req.body;
-    if (!title || !description || !difficulty || !testCaseDtos || !userId) {
+    const { title, description, difficulty, hints, topics, testCaseDtos, cppCode, javaCode, pyCode, jsCode} = req.body;
+    if (!title || !description || !difficulty || !testCaseDtos || !userId || !cppCode || !javaCode || !pyCode || !jsCode) {
         return next(new ErrorResponse("Missing required fields !!", 400));
     }
     if (!mongoose.isValidObjectId(userId)) {
@@ -44,6 +45,13 @@ const addQuestion = asyncHandler(async (req, res, next) => {
             return await Topic.findById(topicId);
         }));
     }    
+    await Solution.create({
+        questionId: newQuestion.id,
+        cpp: cppCode,
+        java: javaCode,
+        python: pyCode,
+        javascript: jsCode
+    });
     const response = {
         ...newQuestion.toObject(),
         topics: topicDtos,
