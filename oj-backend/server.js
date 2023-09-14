@@ -13,6 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const discussionRoutes = require('./routes/discussionRoutes');
+const solutionRoutes = require('./routes/solutionRoutes');
 
 connectDb();
 app.use(express.json());
@@ -22,7 +23,8 @@ app.use("/api/user", userRoutes);
 app.use("/api/question", questionRoutes);
 app.use("/api/submission", submissionRoutes);
 app.use("/api/discussion", discussionRoutes);
-app.use(errorHandler)
+app.use("/api/solution", solutionRoutes);
+app.use(errorHandler);
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
