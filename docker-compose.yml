@@ -1,0 +1,27 @@
+version: '3'
+services:
+  node-app:
+    build: 
+      context: /oj-backend
+      dockerfile: Dockerfile
+    #image: my-node-img
+    ports:
+      - "5000:5000"
+    container_name: node-app-container  
+    #depends_on:
+    #  - mongodb
+    depends_on:
+      - execution-server
+
+  execution-server: 
+    build: 
+      context: /execution-service  # Set the context to the execution-service folder
+      dockerfile: Dockerfile
+    ports: 
+      - "5151:5151"
+    container_name: execution-service-container       
+
+  #mongodb:
+  #  image: mongo:latest
+  #  ports:
+  #    - "27017:27017"

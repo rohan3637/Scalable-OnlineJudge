@@ -5,6 +5,7 @@ const executeJS = {
     return new Promise((resolve, reject) => {
       // Run the JS script
       const runCommand = `node ${jsFilePath}`;
+      console.log(runCommand);
       const runProcess = exec(runCommand, (runError, runStdout, runStderr) => {
         if (runError || runStderr) {
           reject(`Execution failed: ${runError || runStderr}`);

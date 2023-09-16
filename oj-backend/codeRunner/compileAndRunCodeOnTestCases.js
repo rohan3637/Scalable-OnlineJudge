@@ -1,67 +1,20 @@
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const executeCPP = require('./executeCPP');
-const executeJAVA = require('./executeJAVA');
-const executePy = require('./executePy');
-const executeJS = require('./executeJS');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require("express-async-handler");
+const axios = require('axios');
 
 const compileAndRunCodeOnTestCases = asyncHandler(async (language, codeContent, testcases) => {
-    // Create a temporary directory
-    const tempDir = path.join(__dirname, 'temp');
-    fs.mkdirSync(tempDir, { recursive: true });
-
-    // Write code to a temporary file
-    const codeFilePath = path.join(tempDir, 'submission.' + getExtensionForLanguage(language));
-    fs.writeFileSync(codeFilePath, codeContent);
-  
-    // Determine the execution function based on the language
-    let executeFunction;
-    if (language === 'JAVASCRIPT') executeFunction = executeJS;
-    else if (language === 'JAVA') executeFunction = executeJAVA;
-    else if (language === 'CPP') executeFunction = executeCPP;
-    else if (language === 'PYTHON') executeFunction = executePy;
-
-    if (executeFunction.compile) {
-      try {
-          await executeFunction.compile(codeFilePath);
-      } catch (compileError) {
-          return new ErrorResponse(compileError, 400);
-      }
-    }
-
-    try {
-      const results = await Promise.all(testcases.map(async (testCase) => {
-          const { input, expectedOutput } = testCase;
-          const result = await executeFunction.execute(codeFilePath, input);
-
-          // Check if the output matches the expected output
-          const isTestCasePassed = result.trim() === expectedOutput.trim();
-          return { input, actualOutput: result.trim(), expectedOutput, passed: isTestCasePassed };
-      }));
-      return results;
-    } catch (error) {
-      return new ErrorResponse(error, 400);
-    } finally {
-      fs.rmdirSync(tempDir, { recursive: true });
-    }
+  const reqBody = {
+    language,
+    codeContent,
+    testcases
+  }
+  try {
+    const response = await axios.post("http://host.docker.internal:5151/api/execute-test-case", reqBody);
+    return response?.data;
+  } catch (error) {
+    console.error(error.response.data.message);
+    throw new ErrorResponse(error.response.data.message, error.response.status);
+  }
 });
-
-const getExtensionForLanguage = (language) => {
-    switch (language.toLowerCase()) {
-      case 'javascript':
-        return 'js';
-      case 'cpp':
-        return 'cpp';
-      case 'java':
-        return 'java';
-      case 'python':
-        return 'py';
-      default:
-        throw new ErrorResponse(`Unsupported language: ${language}`, 400);
-    }
-}
 
 module.exports = compileAndRunCodeOnTestCases;

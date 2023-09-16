@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 const asyncHandler = require("express-async-handler");
 
-const PYTHON_PATH = process.env.PYTHON_PATH
+const PYTHON_PATH = process.env.PYTHON_PATH || "C:/Users/rohan.kumar01/AppData/Local/Programs/Python/Python311/python.exe";
 
 const executePy = {
   async execute(pythonFilePath, input) {
@@ -17,8 +17,18 @@ const executePy = {
         }
       });
 
+      runProcess.stdin.on('error', (err) => {
+        reject(`Error writing to stdin: ${err}`);
+      });
+
+      runProcess.on('exit', (code) => {
+        if (code !== 0) {
+          reject(`JS program exited with non-zero code: ${code}`);
+        }
+      }); 
+
       runProcess.stdin.write(input);
-      runProcess.stdin.end();
+      runProcess.stdin.end(); 
     });
   },
 };
