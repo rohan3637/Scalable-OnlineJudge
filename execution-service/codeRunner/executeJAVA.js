@@ -5,6 +5,7 @@ const executeJAVA = {
   async compile(javaFilePath) {
     return new Promise((resolve, reject) => {
       // Compile the Java code using javac
+      console.log(javaFilePath)
       const compileCommand = `javac ${javaFilePath}`;
       exec(compileCommand, (compileError, compileStdout, compileStderr) => {
         if (compileError || compileStderr) {

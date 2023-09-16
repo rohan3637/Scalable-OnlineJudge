@@ -76,6 +76,7 @@ const submitCode = asyncHandler(async (req, res, next) => {
         else if (!failedTestCase) failedTestCase = testResultDto;
     }
     const status = testCasesPassed === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
+
     question.totalSubmission = question.totalSubmission + 1;
     if(status == 'ACCEPTED') question.correctSubmission = question.correctSubmission + 1;
     await question.save()
