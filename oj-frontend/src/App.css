@@ -36,3 +36,11 @@
     transform: rotate(360deg);
   }
 }
+
+.table-row-even:hover {
+  background-color: #f5f5f5; /* Change this color to your preferred hover effect color */
+}
+
+.table-row-odd:hover {
+  background-color: #f0f0f0; /* Change this color to your preferred hover effect color */
+}

@@ -69,7 +69,7 @@ const getQuestionDetails = asyncHandler(async (req, res, next) => {
     if (!question) {
         return next(new ErrorResponse(`Question not found with id: ${questionId}`, 404));
     }
-    const testCases = await TestCase.find({ questionId });
+    const testCases = await TestCase.find({ questionId }).limit(2);
     const topicDtos = await Promise.all(question?.topicIds?.map(async (topicId) => {
         return await Topic.findById(topicId);
     }));
