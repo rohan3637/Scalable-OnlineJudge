@@ -67,6 +67,7 @@ const submitCode = asyncHandler(async (req, res, next) => {
     }
     const testCases = await TestCase.find({questionId});
     const testResultDtos = await compileAndRunCodeOnTestCases(language, codeContent, testCases); 
+    console.log(testResultDtos);
     if (testResultDtos instanceof ErrorResponse) return next(testResultDtos);
 
     let testCasesPassed = 0;

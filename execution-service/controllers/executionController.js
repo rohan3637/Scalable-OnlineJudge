@@ -6,11 +6,30 @@ const executePy = require('../codeRunner/executePy');
 const executeJS = require('../codeRunner/executeJS');
 const fs = require('fs');
 const path = require('path');
+const { setupRabbitMQ } = require('../config/connectRabbitMQ');
 
-const executeCodeOnUserInput = asyncHandler(async (req, res, next) => {
-    const { language, codeContent, userInput, solutionCode } = req.body;
+const executeCode = async() => {
+  const rabbitMQChannel = await setupRabbitMQ();
+  // Consume both queues/topics
+  rabbitMQChannel.consume('userInput-queue', (msg) => {
+    rabbitMQChannel.ack(msg);
+    executeCodeOnUserInput(msg, rabbitMQChannel);
+  });
+
+  rabbitMQChannel.consume('submission-queue', (msg) => {
+    rabbitMQChannel.ack(msg);
+    executeCodeOnTestCases(msg, rabbitMQChannel);
+  });
+}
+
+const executeCodeOnUserInput = asyncHandler(async(msg, rabbitMQChannel) => {
+  try {
+    const data = JSON.parse(msg.content.toString());
+    const { language, codeContent, userInput, solutionCode } = data;
     if (!language || !codeContent || !userInput || !solutionCode) {
-      return next(new ErrorResponse("Missing required fields !!", 400));
+      let errResp = {message: "Missing required fields !!", statusCode: 400};
+      rabbitMQChannel.sendToQueue('ui-response-queue', Buffer.from(JSON.stringify(errResp)));
+      return;
     }
     const tempDir = path.join(__dirname, 'temp');
     fs.mkdirSync(tempDir, { recursive: true });
@@ -29,27 +48,37 @@ const executeCodeOnUserInput = asyncHandler(async (req, res, next) => {
     fs.writeFileSync(solutionFilePath, solutionCode);
 
     try {
-        const [a, actualOutput, b, expectedOutput] = await Promise.all([ 
-            executeFunction.compile ? await executeFunction.compile(userCodeFilePath) : null,
-            executeFunction.execute(userCodeFilePath, userInput), 
-            executeFunction.compile ? await executeFunction.compile(solutionFilePath) : null,
-            executeFunction.execute(solutionFilePath, userInput)
-        ]);
-        const isTestCasePassed = actualOutput.trim() === expectedOutput.trim();
-        const response = { userInput, actualOutput: actualOutput.trim(), expectedOutput: expectedOutput.trim(), passed: isTestCasePassed };
-        res.status(200).json(response);
+      const [a, actualOutput, b, expectedOutput] = await Promise.all([ 
+        executeFunction.compile ? await executeFunction.compile(userCodeFilePath) : null,
+        executeFunction.execute(userCodeFilePath, userInput, 0), 
+        executeFunction.compile ? await executeFunction.compile(solutionFilePath) : null,
+        executeFunction.execute(solutionFilePath, userInput, 0)
+      ]);
+      const isTestCasePassed = actualOutput.trim() === expectedOutput.trim();
+      const response = { userInput, actualOutput: actualOutput.trim(), expectedOutput: expectedOutput.trim(), passed: isTestCasePassed };
+      rabbitMQChannel.sendToQueue('ui-response-queue', Buffer.from(JSON.stringify(response)));
     } catch (error) {
-        return next(new ErrorResponse(error, 400));
+      errResp = {message: error, statusCode: 400};
+      rabbitMQChannel.sendToQueue('ui-response-queue', Buffer.from(JSON.stringify(errResp)));
     } finally {
         fs.rmdirSync(tempDir, { recursive: true });
     }
+  } catch (error) {
+    errResp = {message: error.message, statusCode: 400};
+    rabbitMQChannel.sendToQueue('ui-response-queue', Buffer.from(JSON.stringify(errResp)));
+    rabbitMQChannel.ack(msg);
+  }
 });
 
-const executeCodeOnTestCases = asyncHandler(async (req, res, next) => {
-    console.log("reached here");
-    const { language, codeContent, testcases} = req.body;
+const executeCodeOnTestCases = asyncHandler(async(msg, rabbitMQChannel) => {
+  try {
+    const data = JSON.parse(msg.content.toString());
+    const { language, codeContent, testcases } = data;
+
     if (!language || !codeContent || !testcases) {
-      return next(new ErrorResponse("Missing required fields !!", 400));
+      let errResp = {message: "Missing required fields !!", statusCode: 400};
+      rabbitMQChannel.sendToQueue('ui-response-queue', Buffer.from(JSON.stringify(errResp)));
+      return;
     }
     // Create a temporary directory
     const tempDir = path.join(__dirname, 'temp');
@@ -68,28 +97,36 @@ const executeCodeOnTestCases = asyncHandler(async (req, res, next) => {
 
     if (executeFunction.compile) {
       try {
-          await executeFunction.compile(codeFilePath);
+        await executeFunction.compile(codeFilePath);
       } catch (compileError) {
-          return new ErrorResponse(compileError, 400);
+        errResp = {message: compileError, statusCode: 400};
+        rabbitMQChannel.sendToQueue('response-queue', Buffer.from(JSON.stringify(errResp)));
+        return;
       }
     }
 
     try {
       const results = await Promise.all(testcases.map(async (testCase) => {
-          const { input, expectedOutput } = testCase;
-          const result = await executeFunction.execute(codeFilePath, input);
+        let idx = 1;
+        const { input, expectedOutput } = testCase;
+        const result = await executeFunction.execute(codeFilePath, input, idx);
+        idx = idx + 1;
 
-          // Check if the output matches the expected output
-          const isTestCasePassed = result.trim() === String(expectedOutput).trim();
-          return { input, actualOutput: result.trim(), expectedOutput, passed: isTestCasePassed };
-          
+        // Check if the output matches the expected output
+        const isTestCasePassed = result.trim() === String(expectedOutput).trim();
+        return { input, actualOutput: result.trim(), expectedOutput, passed: isTestCasePassed };
       }));
-      res.status(200).json(results);
+      rabbitMQChannel.sendToQueue('response-queue', Buffer.from(JSON.stringify(results)));
     } catch (error) {
-      return next(new ErrorResponse(error, 400));
+      errResp = {message: error, statusCode: 400};
+      rabbitMQChannel.sendToQueue('response-queue', Buffer.from(JSON.stringify(errResp)));
     } finally {
       fs.rmdirSync(tempDir, { recursive: true });
     }
+  } catch (error) {
+    errResp = {message: error.message, statusCode: 500};
+    rabbitMQChannel.sendToQueue('response-queue', Buffer.from(JSON.stringify(errResp)));
+  }
 });
 
 const getExtensionForLanguage = (language) => {
@@ -107,4 +144,4 @@ const getExtensionForLanguage = (language) => {
     }
 }
 
-module.exports = { executeCodeOnUserInput, executeCodeOnTestCases };  
+module.exports = { executeCode };  

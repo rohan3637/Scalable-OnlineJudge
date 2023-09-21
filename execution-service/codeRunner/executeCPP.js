@@ -19,7 +19,7 @@ const executeCPP = {
     });
   },
   
-  async execute(cppFilePath, input) {
+  async execute(cppFilePath, input, idx) {
     return new Promise((resolve, reject) => {
       // If compilation is successful, run the C++ program
       const pathSegments = cppFilePath.split('/');
@@ -33,10 +33,6 @@ const executeCPP = {
           }
       });
 
-      runProcess.stdin.on('error', (err) => {
-        reject(`Error writing to stdin: ${err}`);
-      });
-
       runProcess.stdin.write(input);
       runProcess.stdin.end();
 
@@ -44,7 +40,12 @@ const executeCPP = {
         if (code !== 0) {
           reject(`C++ program exited with non-zero code: ${code}`);
         }
-      });  
+      });
+  
+      setTimeout(() => {
+        runProcess.kill(); 
+        reject(`Time Limit Exceeded (TLE) on testcase: ${idx}`);
+      }, 1000); 
     });
   },
 };
