@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 
 const executeJS = {
-  async execute(jsFilePath, input) {
+  async execute(jsFilePath, input, idx) {
     return new Promise((resolve, reject) => {
       // Run the JS script
       const runCommand = `node ${jsFilePath}`;
@@ -14,18 +14,13 @@ const executeJS = {
         }
       });
 
-      runProcess.stdin.on('error', (err) => {
-        reject(`Error writing to stdin: ${err}`);
-      });
-
-      runProcess.on('exit', (code) => {
-        if (code !== 0) {
-          reject(`JS program exited with non-zero code: ${code}`);
-        }
-      }); 
-
       runProcess.stdin.write(input);
       runProcess.stdin.end();
+
+      setTimeout(() => {
+        runProcess.kill(); 
+        reject('Time Limit Exceeded (TLE) on testcase: ' + idx);
+      }, 1200); 
     });
   },
 };

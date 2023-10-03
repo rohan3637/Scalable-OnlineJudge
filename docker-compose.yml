@@ -1,27 +1,30 @@
 version: '3'
 services:
   node-app:
-    build: 
+    build:
       context: /oj-backend
       dockerfile: Dockerfile
-    #image: my-node-img
     ports:
       - "5000:5000"
-    container_name: node-app-container  
-    #depends_on:
-    #  - mongodb
+    container_name: node-app-container
     depends_on:
       - execution-server
+    #  - rabbitmq  # Add RabbitMQ as a dependency
 
-  execution-server: 
-    build: 
-      context: /execution-service  # Set the context to the execution-service folder
+  execution-server:
+    build:
+      context: /execution-service
       dockerfile: Dockerfile
-    ports: 
+    ports:
       - "5151:5151"
-    container_name: execution-service-container       
+    container_name: execution-service-container
+    #depends_on:
+    #  - rabbitmq
 
-  #mongodb:
-  #  image: mongo:latest
-  #  ports:
-  #    - "27017:27017"
+  # rabbitmq:  # Add RabbitMQ service
+  #   image: "rabbitmq:latest"  # Use the official RabbitMQ image
+  #   ports:
+  #     - "5672:5672"  # RabbitMQ port for communication
+  #     - "15672:15672"  # RabbitMQ Management UI port
+  #   container_name: rabbitmq-container
+

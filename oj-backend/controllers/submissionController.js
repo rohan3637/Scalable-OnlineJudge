@@ -67,7 +67,23 @@ const submitCode = asyncHandler(async (req, res, next) => {
     }
     const testCases = await TestCase.find({questionId});
     const testResultDtos = await compileAndRunCodeOnTestCases(language, codeContent, testCases); 
-    if (testResultDtos instanceof ErrorResponse) return next(testResultDtos);
+    let status;
+    if (testResultDtos instanceof ErrorResponse) {
+        if (testResultDtos.message.includes("TLE")) status = 'TLE';
+        else if (testResultDtos.message.includes("Compilation failed")) status = 'COMPILATION_ERROR';
+        else status = 'RUNTIME_ERROR';
+        
+        await Submission.create({
+            userId,
+            questionId,
+            language,
+            codeContent,
+            submissionTime: new Date(),
+            testCasesPassed: 0,
+            status
+        });
+        return next(testResultDtos);
+    }    
 
     let testCasesPassed = 0;
     let failedTestCase = null;
@@ -75,7 +91,7 @@ const submitCode = asyncHandler(async (req, res, next) => {
         if (testResultDto.passed) testCasesPassed++;
         else if (!failedTestCase) failedTestCase = testResultDto;
     }
-    const status = testCasesPassed === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
+    status = testCasesPassed === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
 
     question.totalSubmission = question.totalSubmission + 1;
     if(status == 'ACCEPTED') question.correctSubmission = question.correctSubmission + 1;

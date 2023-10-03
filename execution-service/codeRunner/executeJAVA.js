@@ -17,7 +17,7 @@ const executeJAVA = {
     });
   },
   
-  async execute(javaFilePath, input) {
+  async execute(javaFilePath, input, idx) {
     return new Promise((resolve, reject) => {
       // If compilation is successful, run the JAVA program
       const pathSegments = javaFilePath.split('/');
@@ -33,10 +33,13 @@ const executeJAVA = {
 
       runProcess.stdin.write(input);
       runProcess.stdin.end();
+
+      setTimeout(() => {
+        runProcess.kill(); 
+        reject(`Time Limit Exceeded (TLE) on testcase: ${idx}`);
+      }, 1000); 
     });
   },
 };
-
-
 
 module.exports = executeJAVA;
